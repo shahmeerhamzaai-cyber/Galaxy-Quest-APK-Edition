@@ -11,11 +11,12 @@ jobs:
       - name: Checkout Galaxy Quest
         uses: actions/checkout@v4
 
-      - name: Build APK
+      - name: Build with Buildozer
         uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
           workdir: .
+          buildozer_version: stable
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
