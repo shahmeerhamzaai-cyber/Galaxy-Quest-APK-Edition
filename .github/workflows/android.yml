@@ -5,21 +5,34 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout Galaxy Quest
         uses: actions/checkout@v4
 
-      - name: Build with Buildozer
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .
-          buildozer_version: stable
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3-pip \
+            python3-venv \
+            openjdk-17-jdk \
+            git \
+            zip \
+            unzip
+
+      - name: Install Buildozer
+        run: |
+          python3 -m pip install --user --upgrade pip
+          python3 -m pip install --user buildozer
+
+      - name: Build APK
+        run: |
+          ~/.local/bin/buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyQuest-APK
-          path: ${{ steps.buildozer.outputs.filename }}
+          path: bin/*.apk
