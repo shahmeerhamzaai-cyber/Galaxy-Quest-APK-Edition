@@ -11,25 +11,45 @@ jobs:
       - name: Checkout Galaxy Quest
         uses: actions/checkout@v5
 
-      - name: Install dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            python3-pip \
-            python3-venv \
-            openjdk-17-jdk \
             git \
             zip \
-            unzip
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            libtool \
+            pkg-config
 
       - name: Install Buildozer
         run: |
-          python3 -m pip install --user --upgrade pip
-          python3 -m pip install --user buildozer
+          python -m pip install --upgrade pip
+          python -m pip install buildozer cython
+
+      - name: Install Android SDK tools
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+      - name: Check AIDL
+        run: |
+          find "$ANDROID_HOME" -name aidl -type f -print
+          which aidl || true
 
       - name: Build APK
         run: |
-          ~/.local/bin/buildozer -v android debug
+          buildozer -v android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
