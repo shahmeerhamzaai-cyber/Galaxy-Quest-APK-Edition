@@ -168,17 +168,49 @@ jobs:
       # --------------------------------------------------
       # 16. Copy Android SDK tools into Buildozer SDK
       # --------------------------------------------------
-      - name: Install Buildozer Android SDK tools
+      
+      # --------------------------------------------------
+      # 16. Prepare Buildozer Android SDK
+      # --------------------------------------------------
+      - name: Prepare Buildozer Android SDK
         run: |
-          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/build-tools"
-          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/platforms"
+          BUILD_SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$BUILD_SDK/tools"
+
+          SDKMANAGER="$(find "$ANDROID_HOME" -type f -name sdkmanager | head -n 1)"
+
+          if [ -z "$SDKMANAGER" ]; then
+            echo "ERROR: sdkmanager was not found!"
+            find "$ANDROID_HOME" -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+
+          echo "Found sdkmanager:"
+          echo "$SDKMANAGER"
+
+          mkdir -p "$BUILD_SDK/tools/bin"
+
+          ln -sf "$SDKMANAGER" "$BUILD_SDK/tools/bin/sdkmanager"
+
+          mkdir -p "$BUILD_SDK/build-tools"
+          mkdir -p "$BUILD_SDK/platforms"
+          mkdir -p "$BUILD_SDK/platform-tools"
+          mkdir -p "$BUILD_SDK/ndk"
 
           cp -r "$ANDROID_HOME/build-tools/35.0.0" \
-            "$HOME/.buildozer/android/platform/android-sdk/build-tools/"
+            "$BUILD_SDK/build-tools/"
 
           cp -r "$ANDROID_HOME/platforms/android-35" \
-            "$HOME/.buildozer/android/platform/android-sdk/platforms/"
+            "$BUILD_SDK/platforms/"
 
+          cp -r "$ANDROID_HOME/platform-tools/"* \
+            "$BUILD_SDK/platform-tools/"
+
+          cp -r "$ANDROID_HOME/ndk/28.2.13676358" \
+            "$BUILD_SDK/ndk/"
+
+          echo "Buildozer SDK prepared!"
       # --------------------------------------------------
       # 17. Verify Buildozer AIDL
       # --------------------------------------------------
