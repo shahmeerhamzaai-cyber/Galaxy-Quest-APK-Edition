@@ -49,7 +49,7 @@ jobs:
       - name: Check AIDL
         run: |
           which aidl
-          aidl --version
+          aidl --help
 
       - name: Install Buildozer
         run: |
