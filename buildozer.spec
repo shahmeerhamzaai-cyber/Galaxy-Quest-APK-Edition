@@ -9,6 +9,11 @@ source.include_exts = py,png,jpg,jpeg,kv,atlas,wav,mp3
 
 requirements = python3,kivy,charset-normalizer==2.1.1
 
+android.api = 35
+android.minapi = 24
+android.ndk = 28c
+android.ndk_api = 24
+
 orientation = landscape
 fullscreen = 0
 
