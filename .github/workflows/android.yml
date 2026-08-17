@@ -127,25 +127,24 @@ jobs:
           echo "sdkmanager is working."
 
       # 10. Verify AIDL
-      - name: Verify AIDL
+      - name: Verify Buildozer AIDL
         run: |
           AIDL="$HOME/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl"
 
-          echo "Checking:"
+          echo "Checking AIDL:"
           echo "$AIDL"
 
           if [ ! -f "$AIDL" ]; then
-            echo "ERROR: AIDL was not found."
-            find "$ANDROID_HOME/build-tools" -type f -name aidl -print
+            echo "ERROR: AIDL is missing!"
             exit 1
           fi
 
-          chmod +x "$AIDL"
+          echo "AIDL exists!"
+          ls -l "$AIDL"
 
-          "$AIDL" --help > /dev/null || true
+          "$AIDL" --help > /dev/null
 
-          echo "AIDL was found."
-
+          echo "AIDL is working!"
       # 11. Install Buildozer
       - name: Install Buildozer
         run: |
