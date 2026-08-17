@@ -29,7 +29,6 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-
           sudo apt-get install -y \
             git \
             zip \
@@ -82,7 +81,6 @@ jobs:
           echo "ANDROIDSDK=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROIDAPI=35" >> "$GITHUB_ENV"
           echo "ANDROIDMINAPI=24" >> "$GITHUB_ENV"
-
           echo "ANDROIDNDK=$ANDROID_HOME/ndk/28.2.13676358" >> "$GITHUB_ENV"
 
       # --------------------------------------------------
@@ -168,14 +166,45 @@ jobs:
           echo "=========================="
 
       # --------------------------------------------------
-      # 16. Build APK
+      # 16. Copy Android SDK tools into Buildozer SDK
+      # --------------------------------------------------
+      - name: Install Buildozer Android SDK tools
+        run: |
+          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/build-tools"
+          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/platforms"
+
+          cp -r "$ANDROID_HOME/build-tools/35.0.0" \
+            "$HOME/.buildozer/android/platform/android-sdk/build-tools/"
+
+          cp -r "$ANDROID_HOME/platforms/android-35" \
+            "$HOME/.buildozer/android/platform/android-sdk/platforms/"
+
+      # --------------------------------------------------
+      # 17. Verify Buildozer AIDL
+      # --------------------------------------------------
+      - name: Verify Buildozer AIDL
+        run: |
+          AIDL="$HOME/.buildozer/android/platform/android-sdk/build-tools/35.0.0/aidl"
+
+          if [ ! -f "$AIDL" ]; then
+            echo "ERROR: Buildozer AIDL is still missing!"
+            exit 1
+          fi
+
+          chmod +x "$AIDL"
+          "$AIDL" --help > /dev/null
+
+          echo "Buildozer AIDL is working!"
+
+      # --------------------------------------------------
+      # 18. Build APK
       # --------------------------------------------------
       - name: Build Galaxy Quest APK
         run: |
           buildozer -v android debug
 
       # --------------------------------------------------
-      # 17. Show generated APK
+      # 19. Show generated APK
       # --------------------------------------------------
       - name: Find APK
         run: |
@@ -184,7 +213,7 @@ jobs:
           echo "====================="
 
       # --------------------------------------------------
-      # 18. Upload APK
+      # 20. Upload APK
       # --------------------------------------------------
       - name: Upload Galaxy Quest APK
         uses: actions/upload-artifact@v4
