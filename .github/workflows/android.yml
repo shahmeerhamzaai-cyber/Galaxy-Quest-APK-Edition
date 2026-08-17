@@ -143,6 +143,18 @@ jobs:
           java -version
           javac -version
 
+      - name: Verify AIDL
+        run: |
+          echo "Checking Android SDK..."
+          sdkmanager --version
+
+          echo "Checking AIDL..."
+          test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
+
+          "$ANDROID_HOME/build-tools/35.0.0/aidl" --help > /dev/null
+
+          echo "AIDL is OK!"
+
       # --------------------------------------------------
       # 10. Install Buildozer
       # --------------------------------------------------
