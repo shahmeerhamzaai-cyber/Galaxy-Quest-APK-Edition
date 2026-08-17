@@ -299,6 +299,11 @@ jobs:
           rm -rf .buildozer
           rm -rf bin
 
+      - name: Clean old Buildozer cache
+        run: |
+          rm -rf .buildozer
+          rm -rf bin
+
       # 17. Build APK
       - name: Build Galaxy Quest APK
         run: |
