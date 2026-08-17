@@ -81,6 +81,30 @@ jobs:
             "build-tools;35.0.0" \
             "ndk;28.2.13676358"
 
+      - name: Install and Verify AIDL
+    run: |
+      echo "Installing Android Build-Tools containing AIDL..."
+
+      sdkmanager "build-tools;35.0.0"
+
+      AIDL="$ANDROID_HOME/build-tools/35.0.0/aidl"
+
+      echo "Checking:"
+      echo "$AIDL"
+
+      if [ ! -f "$AIDL" ]; then
+      echo "ERROR: AIDL was not installed!"
+      echo "Build-Tools contents:"
+      ls -la "$ANDROID_HOME/build-tools/35.0.0"
+      exit 1
+      fi
+
+      chmod +x "$AIDL"
+
+      "$AIDL" --help > /dev/null
+
+      echo "✅ AIDL is installed and working!"
+
       # --------------------------------------------------
       # 7. Configure Android environment
       # --------------------------------------------------
