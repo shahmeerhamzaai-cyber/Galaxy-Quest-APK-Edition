@@ -1,4 +1,4 @@
-```yaml
+
 name: Build Galaxy Quest APK
 
 on:
@@ -141,4 +141,4 @@ jobs:
           name: GalaxyQuest-APK
           path: bin/*.apk
           if-no-files-found: error
-```
+
