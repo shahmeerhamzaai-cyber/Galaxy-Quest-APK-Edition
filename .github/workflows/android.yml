@@ -556,22 +556,7 @@ jobs:
             echo "PATH test:"
             aidl --help 2>&1 | head -10 && echo "✓ AIDL working (PATH)" || echo "⚠ AIDL in PATH"
           fi
-      - name: "Step 51: Locate AIDL tool"
-        run: |
-          echo "=== Searching for AIDL ==="
 
-          AIDL="$HOME/android-sdk/build-tools/35.0.0/aidl"
-
-          if [ -f "$AIDL" ]; then
-            chmod +x "$AIDL"
-            echo "✓ AIDL found: $AIDL"
-          else
-            echo "✗ AIDL not found in Build Tools 35.0.0"
-            echo "Installed Build Tools:"
-            ls -la "$HOME/android-sdk/build-tools/" || true
-            find "$HOME/android-sdk/build-tools" -name aidl -type f 2>/dev/null || true
-            exit 1
-          fi
 
       - name: "Step 52: Create AIDL symlink (primary)"
         run: |
