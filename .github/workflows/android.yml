@@ -466,156 +466,88 @@ jobs:
       # ================================================================
       # SECTION 8: AIDL TOOL SETUP (CRITICAL) (6 steps)
       # ================================================================
-
-      
       - name: "Step 51: Locate AIDL tool"
         run: |
           echo "=== Searching for AIDL ==="
-          AIDL_LOCATIONS=()
-          
-          # Check standard locations
-          for version in 35.0.0 34.0.0 33.0.0; do
-            AIDL="$HOME/android-sdk/build-tools/$version/aidl"
-            if [ -f "$AIDL" ]; then
-              AIDL_LOCATIONS+=("$AIDL")
-              echo "Found: $AIDL"
-              chmod +x "$AIDL"
-            fi
-          done
-          
-          if [ ${#AIDL_LOCATIONS[@]} -eq 0 ]; then
-            echo "⚠ AIDL not found in standard locations, searching filesystem..."
-            find $HOME/android-sdk/build-tools -name "aidl" -type f 2>/dev/null | while read aidl; do
-              echo "Found: $aidl"
-              chmod +x "$aidl"
-            done
-          fi
-          echo "✓ AIDL search completed"
 
-      - name: "Step 52: Create AIDL symlink (primary)"
-        run: |
-          AIDL_SRC="$HOME/android-sdk/build-tools/35.0.0/aidl"
-          AIDL_DST="$HOME/android-sdk/cmdline-tools/latest/bin/aidl"
-          
-          if [ -f "$AIDL_SRC" ]; then
-            rm -f "$AIDL_DST"
-            ln -s "$AIDL_SRC" "$AIDL_DST"
-            chmod +x "$AIDL_SRC"
-            echo "✓ AIDL symlink created (primary)"
-          else
-            echo "⚠ AIDL source not found at 35.0.0"
-          fi
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
 
-      - name: "Step 53: Create AIDL symlink (fallback)"
-        run: |
-          AIDL_SRC="$HOME/android-sdk/build-tools/34.0.0/aidl"
-          AIDL_DST="$HOME/android-sdk/cmdline-tools/latest/bin/aidl"
-          
-          if [ ! -f "$AIDL_DST" ] && [ -f "$AIDL_SRC" ]; then
-            ln -s "$AIDL_SRC" "$AIDL_DST"
-            chmod +x "$AIDL_SRC"
-            echo "✓ AIDL symlink created (fallback 34.0.0)"
-          fi
+          echo "Searching installed Android SDK..."
+          AIDL=$(find /usr/local/lib/android/sdk/build-tools -name aidl -type f 2>/dev/null | sort -V | tail -1)
 
-      - name: "Step 54: Create AIDL wrapper script"
-        run: |
-          cat > "$HOME/android-sdk/cmdline-tools/latest/bin/aidl-wrapper" << 'AIDLWRAP'
-          #!/bin/bash
-          for version in 35.0.0 34.0.0 33.0.0 32.0.0; do
-            AIDL="$HOME/android-sdk/build-tools/$version/aidl"
-            if [ -f "$AIDL" ] && [ -x "$AIDL" ]; then
-              exec "$AIDL" "$@"
-            fi
-          done
-          echo "AIDL not found in any build-tools version"
-          exit 1
-          AIDLWRAP
-          chmod +x "$HOME/android-sdk/cmdline-tools/latest/bin/aidl-wrapper"
-          echo "✓ AIDL wrapper script created"
-
-      - name: "Step 55: Add build-tools to PATH (multiple versions)"
-        run: |
-          echo "$HOME/android-sdk/build-tools/35.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/33.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "✓ Build-tools added to PATH"
-
-      - name: "Step 56: Test AIDL execution"
-        run: |
-          echo "=== Testing AIDL ==="
-          AIDL="$HOME/android-sdk/build-tools/35.0.0/aidl"
-          
-          if [ -f "$AIDL" ] && [ -x "$AIDL" ]; then
-            echo "Direct test:"
-            $AIDL --help 2>&1 | head -10 && echo "✓ AIDL working (direct)" || echo "⚠ AIDL responded"
-          fi
-          
-          if command -v aidl &> /dev/null; then
-            echo "PATH test:"
-            aidl --help 2>&1 | head -10 && echo "✓ AIDL working (PATH)" || echo "⚠ AIDL in PATH"
-          fi
-
-
-      - name: "Step 52: Create AIDL symlink (primary)"
-        run: |
-          AIDL_SRC="$HOME/android-sdk/build-tools/35.0.0/aidl"
-          AIDL_DST="$HOME/android-sdk/cmdline-tools/latest/bin/aidl"
-
-          if [ -f "$AIDL_SRC" ]; then
-            rm -f "$AIDL_DST"
-            ln -s "$AIDL_SRC" "$AIDL_DST"
-            chmod +x "$AIDL_SRC"
-            echo "✓ AIDL symlink created"
-          else
-            echo "✗ AIDL source not found"
+          if [ -z "$AIDL" ]; then
+            echo "✗ AIDL was not found"
+            echo "Available Build Tools:"
+            find /usr/local/lib/android/sdk/build-tools -maxdepth 2 -type f 2>/dev/null | head -50
             exit 1
           fi
 
-      - name: "Step 53: Verify AIDL installation"
-        run: |
-          AIDL="$HOME/android-sdk/build-tools/35.0.0/aidl"
+          chmod +x "$AIDL"
 
-          echo "AIDL location:"
-          ls -lah "$AIDL"
-
-          echo "AIDL version:"
-          "$AIDL" --version || "$AIDL" --help | head -20
-
-          echo "✓ AIDL installation verified"
-
-      - name: "Step 54: Create AIDL wrapper script"
-        run: |
-          cat > "$HOME/android-sdk/cmdline-tools/latest/bin/aidl-wrapper" << 'AIDLWRAP'
-          #!/bin/bash
-
-          AIDL="$HOME/android-sdk/build-tools/35.0.0/aidl"
-
-          if [ -x "$AIDL" ]; then
-            exec "$AIDL" "$@"
-          fi
-
-          echo "ERROR: AIDL was not found at:"
+          echo "AIDL found at:"
           echo "$AIDL"
-          exit 1
-          AIDLWRAP
 
-          chmod +x "$HOME/android-sdk/cmdline-tools/latest/bin/aidl-wrapper"
+          echo "AIDL_PATH=$AIDL" >> "$GITHUB_ENV"
 
-          echo "✓ AIDL wrapper created"
+          echo "✓ AIDL located"
 
-      - name: "Step 55: Add AIDL and Build Tools to PATH"
+      - name: "Step 52: Add AIDL to PATH"
         run: |
-          echo "$HOME/android-sdk/build-tools/35.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/34.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/build-tools/33.0.0" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          AIDL_DIR="$(dirname "$AIDL_PATH")"
+
+          echo "$AIDL_DIR" >> "$GITHUB_PATH"
+
+          echo "AIDL directory:"
+          echo "$AIDL_DIR"
 
           echo "✓ AIDL added to PATH"
-          echo "✓ Build Tools added to PATH"
 
+      - name: "Step 53: Verify AIDL"
+        run: |
+          echo "=== AIDL Verification ==="
+
+          echo "AIDL_PATH=$AIDL_PATH"
+
+          test -f "$AIDL_PATH"
+
+          echo "AIDL executable:"
+          ls -lah "$AIDL_PATH"
+
+          echo "✓ AIDL file exists"
+
+      - name: "Step 54: Test AIDL directly"
+        run: |
+          echo "=== Direct AIDL Test ==="
+
+          "$AIDL_PATH" --help 2>&1 | head -20 || true
+
+          echo "✓ Direct AIDL test completed"
+
+      - name: "Step 55: Test AIDL from PATH"
+        run: |
+          echo "=== PATH AIDL Test ==="
+
+          command -v aidl
+
+          aidl --help 2>&1 | head -20 || true
+
+          echo "✓ AIDL is available from PATH"
+
+      - name: "Step 56: Final AIDL check"
+        run: |
+          echo "================================"
+          echo "FINAL AIDL CHECK"
+          echo "================================"
+
+          echo "Location:"
+          command -v aidl
+
+          echo "Binary:"
+          ls -lah "$(command -v aidl)"
+
+          echo "AIDL is ready for Buildozer."
+      
       - name: "Step 56: Test AIDL execution"
         run: |
           echo "=== FINAL AIDL TEST ==="
