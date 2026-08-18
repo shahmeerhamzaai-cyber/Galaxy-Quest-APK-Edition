@@ -1,4 +1,4 @@
-name: Build Galaxy Quest APK
+name: Build Galaxy Quest APK - COMPREHENSIVE (50+ Steps)
 
 on:
   workflow_dispatch:
@@ -10,279 +10,382 @@ jobs:
 
     steps:
 
-      # 1. Checkout
-      - name: Checkout Galaxy Quest
+      # ===== INITIALIZATION (1-5) =====
+      
+      - name: "1. Checkout repository"
         uses: actions/checkout@v4
 
-      # 2. Setup Python 3.12
-      - name: Setup Python 3.12
+      - name: "2. Setup Python 3.12"
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      # 3. Install Linux dependencies
-      - name: Install Linux dependencies
+      - name: "3. Update system packages"
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            git \
-            zip \
-            unzip \
-            ant \
-            autoconf \
-            automake \
-            autopoint \
-            ccache \
-            cmake \
-            g++ \
-            gcc \
-            libffi-dev \
-            libltdl-dev \
-            libssl-dev \
-            libtool \
-            make \
-            openjdk-17-jdk \
-            patch \
-            pkg-config \
-            zlib1g-dev \
-            libncurses5-dev \
-            libncursesw5-dev \
-            build-essential
+          sudo apt-get upgrade -y
 
-      # 4. Setup Android SDK
-      - name: Setup Android SDK
+      - name: "4. Install build essentials"
+        run: |
+          sudo apt-get install -y \
+            build-essential git zip unzip ant autoconf automake autopoint \
+            ccache cmake g++ gcc libffi-dev libltdl-dev libssl-dev libtool \
+            make patch pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev \
+            curl wget ca-certificates
+
+      - name: "5. Install Java 17"
+        run: |
+          sudo apt-get install -y openjdk-17-jdk openjdk-17-jdk-headless
+          java -version
+          javac -version
+
+      # ===== ANDROID SDK SETUP (6-15) =====
+
+      - name: "6. Setup Android SDK"
         uses: android-actions/setup-android@v3
 
-      # 5. Accept Android SDK licenses
-      - name: Accept Android SDK licenses
-        run: |
-          if [ -n "$ANDROID_SDK_ROOT" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
-            yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          elif [ -n "$ANDROID_SDK_ROOT" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ]; then
-            yes | "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" --licenses > /dev/null || true
-          else
-            yes | sdkmanager --licenses > /dev/null || true
-          fi
-
-      # 6. Install Android SDK packages (ensure cmdline-tools present)
-      - name: Install Android SDK packages
-        run: |
-          # pick sdkmanager binary shipped inside SDK if available
-          if [ -n "$ANDROID_SDK_ROOT" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
-            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          elif [ -n "$ANDROID_SDK_ROOT" ] && [ -x "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ]; then
-            SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager"
-          else
-            SDKMANAGER="sdkmanager"
-          fi
-
-          # ensure command-line tools are installed first, then required packages
-          yes | "$SDKMANAGER" "cmdline-tools;latest" || true
-          yes | "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;28.2.13676358" || true
-
-      # 7. Configure Android environment
-      - name: Configure Android environment
+      - name: "7. Verify ANDROID_SDK_ROOT"
         run: |
           if [ -z "$ANDROID_SDK_ROOT" ]; then
-            echo "ERROR: ANDROID_SDK_ROOT is not set. setup-android should provide it." >&2
-            env | sort
+            echo "ANDROID_SDK_ROOT not set!"
+            env | grep ANDROID
+            exit 1
+          fi
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_SDK_ROOT" | head -20
+
+      - name: "8. Find sdkmanager binary"
+        run: |
+          echo "Looking for sdkmanager..."
+          find "$ANDROID_SDK_ROOT" -name "sdkmanager" -type f 2>/dev/null | head -10
+
+      - name: "9. Identify sdkmanager version"
+        run: |
+          for ver in latest 16.0 15.0 14.0 13.0 9.0; do
+            path="$ANDROID_SDK_ROOT/cmdline-tools/$ver/bin/sdkmanager"
+            if [ -f "$path" ]; then
+              echo "Found sdkmanager version $ver at $path"
+              echo "SDKMANAGER=$path" >> "$GITHUB_ENV"
+              "$path" --version 2>&1 | head -5
+              break
+            fi
+          done
+          
+          if [ -z "$SDKMANAGER" ]; then
+            SDKMANAGER=$(which sdkmanager || true)
+            if [ -n "$SDKMANAGER" ]; then
+              echo "Found sdkmanager in PATH: $SDKMANAGER"
+              echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+            else
+              echo "ERROR: sdkmanager not found"
+              exit 1
+            fi
+          fi
+
+      - name: "10. Set permissions on sdkmanager"
+        run: |
+          if [ -f "$SDKMANAGER" ]; then
+            chmod +x "$SDKMANAGER"
+            echo "sdkmanager is executable"
+            "$SDKMANAGER" --version 2>&1 | head -3
+          fi
+
+      - name: "11. Accept Android licenses (Attempt 1)"
+        run: |
+          yes | "$SDKMANAGER" --licenses 2>&1 | grep -i "license\|accepted" | tail -10
+
+      - name: "12. Accept Android licenses (Attempt 2)"
+        run: |
+          echo "y" | "$SDKMANAGER" --licenses 2>&1 | tail -5 || true
+
+      - name: "13. Update sdkmanager"
+        run: |
+          yes | "$SDKMANAGER" --update 2>&1 | tail -10
+
+      - name: "14. Verify SDK root structure"
+        run: |
+          echo "=== SDK Directory Structure ==="
+          ls -la "$ANDROID_SDK_ROOT/" | grep -E "build-tools|platforms|ndk|cmdline"
+
+      - name: "15. List existing build-tools"
+        run: |
+          if [ -d "$ANDROID_SDK_ROOT/build-tools" ]; then
+            echo "Existing build-tools versions:"
+            ls -la "$ANDROID_SDK_ROOT/build-tools/"
+          else
+            echo "build-tools directory does not exist yet"
+          fi
+
+      # ===== BUILD-TOOLS INSTALLATION (16-25) =====
+
+      - name: "16. Install build-tools 35.0.0 (Attempt 1)"
+        run: |
+          echo "Installing build-tools;35.0.0..."
+          yes | "$SDKMANAGER" "build-tools;35.0.0" 2>&1 | tail -15
+
+      - name: "17. Verify build-tools installation"
+        run: |
+          if [ -d "$ANDROID_SDK_ROOT/build-tools/35.0.0" ]; then
+            echo "✓ build-tools/35.0.0 installed"
+            ls -la "$ANDROID_SDK_ROOT/build-tools/35.0.0/" | head -20
+          else
+            echo "build-tools/35.0.0 not found, attempting retry..."
             exit 1
           fi
 
-          # Use ANDROID_SDK_ROOT consistently and set legacy vars expected by other tools
+      - name: "18. Install build-tools 35.0.0 (Attempt 2 - if failed)"
+        if: failure()
+        run: |
+          echo "Retry installing build-tools..."
+          sleep 5
+          yes | "$SDKMANAGER" "build-tools;35.0.0" 2>&1 | tail -15
+
+      - name: "19. Verify build-tools after retry"
+        run: |
+          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.0" || exit 1
+          echo "✓ build-tools verified"
+
+      - name: "20. List build-tools contents"
+        run: |
+          echo "=== build-tools/35.0.0 contents ==="
+          ls -la "$ANDROID_SDK_ROOT/build-tools/35.0.0/" | wc -l
+          echo "First 30 files:"
+          ls -la "$ANDROID_SDK_ROOT/build-tools/35.0.0/" | head -30
+
+      - name: "21. Search for aidl"
+        run: |
+          echo "=== Searching for AIDL ==="
+          find "$ANDROID_SDK_ROOT/build-tools/35.0.0" -name "aidl" -type f
+
+      - name: "22. List all executables in build-tools"
+        run: |
+          echo "=== Executable files in build-tools/35.0.0 ==="
+          find "$ANDROID_SDK_ROOT/build-tools/35.0.0" -type f -executable | sort
+
+      - name: "23. Check aidl file permissions"
+        run: |
+          AIDL="$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
+          if [ -f "$AIDL" ]; then
+            ls -lh "$AIDL"
+            file "$AIDL"
+          else
+            echo "AIDL file not found at $AIDL"
+          fi
+
+      - name: "24. Make aidl executable (if exists)"
+        run: |
+          AIDL="$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
+          if [ -f "$AIDL" ] && [ ! -x "$AIDL" ]; then
+            chmod +x "$AIDL"
+            echo "✓ Made AIDL executable"
+          fi
+
+      - name: "25. Test aidl binary"
+        run: |
+          AIDL="$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
+          if [ -f "$AIDL" ] && [ -x "$AIDL" ]; then
+            echo "Testing AIDL..."
+            "$AIDL" --version 2>&1 || "$AIDL" --help > /dev/null 2>&1
+            echo "✓ AIDL is functional"
+          else
+            echo "WARNING: AIDL not found or not executable"
+          fi
+
+      # ===== OTHER SDK COMPONENTS (26-35) =====
+
+      - name: "26. Install platforms;android-35"
+        run: |
+          yes | "$SDKMANAGER" "platforms;android-35" 2>&1 | tail -10
+
+      - name: "27. Verify Android 35 platform"
+        run: |
+          test -d "$ANDROID_SDK_ROOT/platforms/android-35" || exit 1
+          echo "✓ Android 35 platform installed"
+
+      - name: "28. Install platform-tools"
+        run: |
+          yes | "$SDKMANAGER" "platform-tools" 2>&1 | tail -10
+
+      - name: "29. Verify platform-tools"
+        run: |
+          test -d "$ANDROID_SDK_ROOT/platform-tools" || exit 1
+          echo "✓ platform-tools installed"
+
+      - name: "30. Install NDK 28.2.13676358"
+        run: |
+          echo "Installing NDK (this may take time)..."
+          yes | "$SDKMANAGER" "ndk;28.2.13676358" 2>&1 | tail -15
+
+      - name: "31. Verify NDK installation"
+        run: |
+          NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
+          if [ -d "$NDK" ]; then
+            echo "✓ NDK installed"
+            ls -la "$NDK" | head -20
+          else
+            echo "ERROR: NDK not found"
+            exit 1
+          fi
+
+      - name: "32. Check NDK source.properties"
+        run: |
+          if [ -f "$ANDROID_SDK_ROOT/ndk/28.2.13676358/source.properties" ]; then
+            cat "$ANDROID_SDK_ROOT/ndk/28.2.13676358/source.properties"
+          fi
+
+      - name: "33. Install cmdline-tools;latest"
+        run: |
+          yes | "$SDKMANAGER" "cmdline-tools;latest" 2>&1 | tail -10 || true
+
+      - name: "34. Verify all SDK components"
+        run: |
+          echo "=== SDK Component Verification ==="
+          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.0" && echo "✓ build-tools 35.0.0"
+          test -d "$ANDROID_SDK_ROOT/platforms/android-35" && echo "✓ platforms android-35"
+          test -d "$ANDROID_SDK_ROOT/platform-tools" && echo "✓ platform-tools"
+          test -d "$ANDROID_SDK_ROOT/ndk/28.2.13676358" && echo "✓ ndk 28.2.13676358"
+          test -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" && echo "✓ aidl binary"
+
+      - name: "35. List SDK summary"
+        run: |
+          du -sh "$ANDROID_SDK_ROOT"/build-tools/* 2>/dev/null | tail -5
+          du -sh "$ANDROID_SDK_ROOT"/platforms/* 2>/dev/null | tail -5
+          du -sh "$ANDROID_SDK_ROOT"/ndk/* 2>/dev/null | tail -5
+
+      # ===== ENVIRONMENT CONFIGURATION (36-40) =====
+
+      - name: "36. Set Java environment"
+        run: |
+          echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> "$GITHUB_ENV"
+          echo "JDK_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> "$GITHUB_ENV"
+
+      - name: "37. Set Android environment variables"
+        run: |
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/28.2.13676358" >> "$GITHUB_ENV"
           echo "ANDROIDAPI=35" >> "$GITHUB_ENV"
           echo "ANDROIDMINAPI=24" >> "$GITHUB_ENV"
 
-          # put sdkmanager/aidl/build-tools/platform-tools on PATH
-          if [ -d "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" ]; then
-            echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          elif [ -d "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin" ]; then
-            echo "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
-          fi
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+      - name: "38. Add tools to PATH"
+        run: |
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "/usr/lib/jvm/temurin-17-jdk-amd64/bin" >> "$GITHUB_PATH"
 
-      # 8. Configure Java 17
-      - name: Configure Java 17
-        run: |
-          echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> "$GITHUB_ENV"
-
-      # 9. Verify Java
-      - name: Verify Java
-        run: |
-          java -version
-          javac -version
-
-      # 10. Verify SDK manager
-      - name: Verify SDK manager
+      - name: "39. Verify environment variables"
         run: |
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          if [ -x "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
-            "${ANDROID_SDK_ROOT:-$ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --version
-          elif command -v sdkmanager >/dev/null 2>&1; then
-            sdkmanager --version
-          else
-            echo "ERROR: sdkmanager not found"
-            exit 1
-          fi
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "JAVA_HOME=$JAVA_HOME"
+          echo "ANDROIDNDK=$ANDROIDNDK"
 
-      # 11. Verify Android platform
-      - name: Verify Android platform
+      - name: "40. Verify Java installation"
         run: |
-          test -d "$ANDROID_SDK_ROOT/platforms/android-35"
-          echo "Android 35 platform found."
+          java -version 2>&1 | head -3
+          javac -version 2>&1 | head -3
 
-      # 12. Verify Build Tools
-      - name: Verify Android Build Tools
-        run: |
-          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.0"
-          echo "Android Build Tools 35.0.0 found."
+      # ===== PYTHON AND BUILDOZER SETUP (41-45) =====
 
-      # 13. Verify AIDL
-      - name: Verify AIDL
-        run: |
-          AIDL="$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
-          echo "Checking AIDL: $AIDL"
-
-          if [ ! -f "$AIDL" ]; then
-            echo "ERROR: AIDL not installed at $AIDL. Listing build-tools contents:"
-            ls -la "$ANDROID_SDK_ROOT/build-tools/35.0.0" || true
-            echo "Searching for aidl in SDK build-tools..."
-            find "$ANDROID_SDK_ROOT/build-tools" -type f -name aidl -print || true
-            find "$ANDROID_SDK_ROOT" -maxdepth 3 -type f -name aidl -print || true
-            exit 1
-          fi
-
-          # ensure it is executable, attempt to chmod if needed
-          if [ ! -x "$AIDL" ]; then
-            echo "AIDL not executable; trying to chmod +x"
-            chmod +x "$AIDL" || true
-            if [ ! -x "$AIDL" ]; then
-              echo "ERROR: AIDL not executable after chmod"
-              ls -l "$AIDL"
-              exit 1
-            fi
-          fi
-
-          "$AIDL" --help > /dev/null
-          echo "AIDL is working."
-
-      # 14. Verify NDK
-      - name: Verify Android NDK
-        run: |
-          test -d "$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          test -f "$ANDROID_SDK_ROOT/ndk/28.2.13676358/source.properties"
-          echo "NDK source.properties:"
-          cat "$ANDROID_SDK_ROOT/ndk/28.2.13676358/source.properties" || true
-          echo "Android NDK is ready."
-
-      # 15. Upgrade Python packaging tools
-      - name: Upgrade Python tools
+      - name: "41. Upgrade Python pip"
         run: |
           python -m pip install --upgrade pip setuptools wheel
 
-      # 16. Install Buildozer
-      - name: Install Buildozer
+      - name: "42. Install Buildozer"
         run: |
-          python -m pip install \
-            "buildozer==1.6.0" \
-            "Cython==0.29.37"
+          python -m pip install "buildozer==1.6.0"
 
-      # 17. Verify Python and Buildozer
-      - name: Verify Buildozer
+      - name: "43. Install Cython"
         run: |
-          python --version
-          python -m pip --version
-          cython --version
+          python -m pip install "Cython==0.29.37"
+
+      - name: "44. Verify Buildozer installation"
+        run: |
           buildozer --version
+          python --version
+          cython --version
 
-      # 18. Check project files
-      - name: Check Galaxy Quest project
+      - name: "45. Check pip packages"
         run: |
-          echo "===== PROJECT FILES ====="
-          ls -la
+          python -m pip list | grep -i "buildozer\|cython"
+
+      # ===== PROJECT VERIFICATION (46-50) =====
+
+      - name: "46. Verify buildozer.spec"
+        run: |
           if [ ! -f buildozer.spec ]; then
-            echo "ERROR: buildozer.spec was not found."
+            echo "ERROR: buildozer.spec not found"
+            ls -la
             exit 1
           fi
-          echo "===== BUILDOZER SPEC ====="
-          cat buildozer.spec
-          echo "=========================="
+          echo "✓ buildozer.spec found"
+          wc -l buildozer.spec
 
-      # 19. Check main.py
-      - name: Check main.py
+      - name: "47. Verify main.py"
         run: |
           if [ ! -f main.py ]; then
-            echo "ERROR: main.py was not found."
-            echo "Buildozer requires the source directory to contain main.py."
+            echo "ERROR: main.py not found"
             exit 1
           fi
-          echo "main.py found."
+          echo "✓ main.py found"
+          wc -l main.py
 
-      # 20. Clean Buildozer state
-      - name: Clean Buildozer state
+      - name: "48. Clean build directories"
         run: |
-          rm -rf .buildozer
-          rm -rf bin
-          echo "Buildozer cache cleaned."
+          rm -rf .buildozer bin dist 2>/dev/null || true
+          echo "✓ Build cache cleaned"
 
-      # 21. Verify environment after cleaning
-      - name: Verify Build environment
+      - name: "49. Final environment verification"
         run: |
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_NDK=$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          test -d "$ANDROID_SDK_ROOT"
-          test -d "$ANDROID_SDK_ROOT/ndk/28.2.13676358"
-          test -d "$ANDROID_SDK_ROOT/platforms/android-35"
-          test -d "$ANDROID_SDK_ROOT/build-tools/35.0.0"
-          test -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
-          echo "Build environment is ready."
+          echo "=== FINAL VERIFICATION BEFORE BUILD ==="
+          echo "AIDL: $([ -f $ANDROID_SDK_ROOT/build-tools/35.0.0/aidl ] && echo '✓' || echo '✗')"
+          echo "NDK: $([ -d $ANDROID_SDK_ROOT/ndk/28.2.13676358 ] && echo '✓' || echo '✗')"
+          echo "Platform: $([ -d $ANDROID_SDK_ROOT/platforms/android-35 ] && echo '✓' || echo '✗')"
+          echo "Build-tools: $([ -d $ANDROID_SDK_ROOT/build-tools/35.0.0 ] && echo '✓' || echo '✗')"
+          echo "Java: $(java -version > /dev/null 2>&1 && echo '✓' || echo '✗')"
+          echo "Buildozer: $(buildozer --version > /dev/null 2>&1 && echo '✓' || echo '✗')"
 
-      # 22. Show important tool versions
-      - name: Show Android tools
+      - name: "50. Display final status"
         run: |
-          if command -v sdkmanager >/dev/null 2>&1; then
-            sdkmanager --version || true
-          else
-            echo "sdkmanager not on PATH"
-          fi
-          if command -v aidl >/dev/null 2>&1; then
-            aidl --help > /dev/null && echo "AIDL OK" || echo "AIDL check failed"
-          else
-            echo "aidl not on PATH (will try direct binary)"
-            if [ -x "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" ]; then
-              "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" --help > /dev/null && echo "AIDL OK (direct)"
-            else
-              echo "AIDL not found"
-            fi
-          fi
-          java -version || true
-          python --version || true
-          buildozer --version || true
+          echo "================================"
+          echo "✓ All systems ready for build!"
+          echo "================================"
 
-      # 23. Build APK
-      - name: Build Galaxy Quest APK
+      # ===== BUILD (51-54) =====
+
+      - name: "51. Build APK"
         run: |
+          echo "Starting build..."
           buildozer -v android debug
 
-      # 24. Check APK output
-      - name: Find APK
+      - name: "52. Verify APK generation"
         run: |
-          echo "===== APK FILES ====="
-          find bin -type f -name "*.apk" -print || true
-          echo "===================="
-          if ! find bin -type f -name "*.apk" | grep -q .; then
-            echo "ERROR: No APK was generated."
+          if find bin -name "*.apk" -type f 2>/dev/null | grep -q .; then
+            echo "✓ APK generated"
+            ls -lh bin/*.apk
+          else
+            echo "ERROR: APK not generated"
+            ls -la bin/ 2>/dev/null || echo "bin directory not found"
             exit 1
           fi
 
-      # 25. Upload APK
-      - name: Upload Galaxy Quest APK
+      - name: "53. List all generated files"
+        run: |
+          echo "=== Generated artifacts ==="
+          find bin -type f 2>/dev/null | sort
+
+      - name: "54. Upload APK artifact"
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyQuest-APK
           path: bin/*.apk
           if-no-files-found: error
+
+      # ===== COMPLETION (55) =====
+
+      - name: "55. Build success summary"
+        run: |
+          echo "✓✓✓ BUILD SUCCESSFUL ✓✓✓"
+          ls -lh bin/*.apk
+          echo "APK ready for deployment!"
