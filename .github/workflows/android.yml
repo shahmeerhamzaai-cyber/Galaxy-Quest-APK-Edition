@@ -223,8 +223,7 @@ jobs:
             virtualenv \
             requests \
             six \
-            pexpect \
-            distutils-stubs > /dev/null 2>&1
+            pexpect
           echo "✓ Python build dependencies installed"
 
       - name: "Step 25: Verify critical Python packages"
