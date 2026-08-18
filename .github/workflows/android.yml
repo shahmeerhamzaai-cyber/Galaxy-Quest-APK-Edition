@@ -82,7 +82,7 @@ jobs:
             "ndk;28.2.13676358"
 
       - name: Install and Verify AIDL
-    run: |
+     run: |
       echo "Installing Android Build-Tools containing AIDL..."
 
       sdkmanager "build-tools;35.0.0"
