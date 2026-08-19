@@ -680,6 +680,38 @@ jobs:
             find "$SEARCH_PATH/build-tools" -name "aidl" -type f 2>/dev/null | head -10
           fi
 
+          
+      - name: Verify AIDL before Buildozer
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "SDK_PATH=$SDK_PATH"
+          echo "AIDL_PATH=$AIDL_PATH"
+
+          
+      - name: Fully Verify AIDL before Buildozer
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "SDK_PATH=$SDK_PATH"
+          echo "AIDL_PATH=$AIDL_PATH"
+
+          echo ""
+          echo "Finding AIDL..."
+          find "$ANDROID_SDK_ROOT/build-tools" -type f -name aidl -print 2>/dev/null
+
+          echo ""
+          echo "Testing AIDL:"
+          command -v aidl
+
+          if command -v aidl >/dev/null 2>&1; then
+            echo "✅ AIDL is available for Buildozer"
+            aidl --help >/dev/null 2>&1
+            echo "✅ AIDL can execute"
+          else
+            echo "❌ AIDL is NOT available"
+            exit 1
+          fi
       # ================================================================
       # SECTION 9: NDK & ENVIRONMENT SETUP (5 steps)
       # ================================================================
@@ -870,19 +902,24 @@ jobs:
           echo "Build exit code: $BUILD_STATUS" | tee -a ~/build_logs/build.log
           exit $BUILD_STATUS
 
-      - name: "Step 71: Verify and upload APK"
+      - name: "Step 71: Verify APK"
         run: |
           echo "=== VERIFYING APK ===" | tee -a ~/build_logs/build.log
-          
-          if find bin -name "*.apk" 2>/dev/null | grep -q .; then
+
+          APK=$(find bin -type f -name "*.apk" 2>/dev/null | head -1)
+
+          if [ -n "$APK" ]; then
             echo "✓ APK found!" | tee -a ~/build_logs/build.log
-            ls -lah bin/*.apk | tee -a ~/build_logs/build.log
+            echo "APK: $APK" | tee -a ~/build_logs/build.log
+            ls -lah "$APK" | tee -a ~/build_logs/build.log
           else
-            echo "✗ APK not found in bin/" | tee -a ~/build_logs/build.log
+            echo "✗ APK not found!" | tee -a ~/build_logs/build.log
             echo "Directory contents:" | tee -a ~/build_logs/build.log
-            ls -laR bin/ 2>/dev/null | tee -a ~/build_logs/build.log || echo "bin/ directory empty"
-            echo "Search in entire project:" | tee -a ~/build_logs/build.log
-            find . -name "*.apk" 2>/dev/null | tee -a ~/build_logs/build.log
+            ls -laR bin/ 2>/dev/null | tee -a ~/build_logs/build.log || true
+
+            echo "Searching entire project:" | tee -a ~/build_logs/build.log
+            find . -type f -name "*.apk" 2>/dev/null | tee -a ~/build_logs/build.log
+
             exit 1
           fi
 
