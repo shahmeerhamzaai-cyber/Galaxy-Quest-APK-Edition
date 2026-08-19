@@ -1049,6 +1049,40 @@ jobs:
 
           java -version
           echo "JAVA_HOME=$JAVA_HOME"
+
+      - name: Fix Buildozer SDK and AIDL
+        run: |
+          SDK="$HOME/android-sdk"
+          BUILDOZER_SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          echo "=== REAL ANDROID SDK ==="
+          echo "SDK = $SDK"
+
+          echo "=== CHECK AIDL ==="
+          ls -l "$SDK/build-tools/35.0.0/aidl"
+
+          "$SDK/build-tools/35.0.0/aidl" --help > /dev/null
+
+          echo "✅ AIDL works"
+
+          echo "=== CONNECT SDK TO BUILDOZER ==="
+          mkdir -p "$HOME/.buildozer/android/platform"
+
+          rm -rf "$BUILDOZER_SDK"
+
+          ln -s "$SDK" "$BUILDOZER_SDK"
+
+          echo "Buildozer SDK:"
+          ls -la "$BUILDOZER_SDK"
+
+          echo "Buildozer Build Tools:"
+          ls -la "$BUILDOZER_SDK/build-tools"
+
+          echo "Buildozer AIDL:"
+          ls -l "$BUILDOZER_SDK/build-tools/35.0.0/aidl"
+
+          echo "✅ Buildozer can see the Android SDK"
+          echo "✅ Buildozer can see AIDL"
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
@@ -1057,11 +1091,17 @@ jobs:
       - name: "Step 70: Build APK with Buildozer"
         run: |
           echo "=== STARTING APK BUILD ===" | tee -a ~/build_logs/build.log
+
+          set -o pipefail
+
           buildozer -v android debug 2>&1 | tee -a ~/build_logs/build_output.log
-          BUILD_STATUS=$?
+
+          BUILD_STATUS=${PIPESTATUS[0]}
+
           echo "" | tee -a ~/build_logs/build.log
           echo "Build exit code: $BUILD_STATUS" | tee -a ~/build_logs/build.log
-          exit $BUILD_STATUS
+
+          exit "$BUILD_STATUS"
 
       - name: "Step 71: Verify APK"
         run: |
