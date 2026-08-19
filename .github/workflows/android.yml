@@ -689,29 +689,7 @@ jobs:
           echo "AIDL_PATH=$AIDL_PATH"
 
           
-      - name: Fully Verify AIDL before Buildozer
-        run: |
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "SDK_PATH=$SDK_PATH"
-          echo "AIDL_PATH=$AIDL_PATH"
 
-          echo ""
-          echo "Finding AIDL..."
-          find "$ANDROID_SDK_ROOT/build-tools" -type f -name aidl -print 2>/dev/null
-
-          echo ""
-          echo "Testing AIDL:"
-          command -v aidl
-
-          if command -v aidl >/dev/null 2>&1; then
-            echo "✅ AIDL is available for Buildozer"
-            aidl --help >/dev/null 2>&1
-            echo "✅ AIDL can execute"
-          else
-            echo "❌ AIDL is NOT available"
-            exit 1
-          fi
       # ================================================================
       # SECTION 9: NDK & ENVIRONMENT SETUP (5 steps)
       # ================================================================
