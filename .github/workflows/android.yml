@@ -127,17 +127,6 @@ jobs:
           echo "OpenJDK 11 path: $java11_path"
           echo "✓ OpenJDK 11 installed"
 
-      - name: "Step 14: Install OpenJDK 17 (backup)"
-        run: |
-          sudo apt-get install -y openjdk-17-jdk openjdk-17-jdk-headless > /dev/null 2>&1 || true
-          java17_path=$(find /usr/lib/jvm -name "java-17-openjdk*" -type d | head -1)
-          if [ -n "$java17_path" ]; then
-            echo "OpenJDK 17 path: $java17_path"
-            echo "✓ OpenJDK 17 installed"
-          else
-            echo "⚠ OpenJDK 17 not available (optional)"
-          fi
-
       - name: "Step 15: Install OpenJDK 8 (extra backup)"
         run: |
           sudo apt-get install -y openjdk-8-jdk openjdk-8-jdk-headless > /dev/null 2>&1 || echo "Java 8 not available"
