@@ -24,19 +24,25 @@ jobs:
 
           echo "Using SDK: $SDK"
 
-          if [ ! -d "$SDK" ]; then
-            echo "❌ SDK directory does not exist: $SDK"
-            exit 1
-          fi
-
           echo "Searching for AIDL..."
+
           AIDL=$(find "$SDK/build-tools" -type f -name aidl 2>/dev/null | sort -V | tail -1)
 
           if [ -n "$AIDL" ]; then
             echo "✅ AIDL found: $AIDL"
-            chmod +x "$AIDL"
+
             echo "$(dirname "$AIDL")" >> "$GITHUB_PATH"
             echo "AIDL_PATH=$AIDL" >> "$GITHUB_ENV"
+
+            echo "Testing AIDL..."
+            "$AIDL" --help >/dev/null 2>&1
+
+            if [ $? -eq 0 ]; then
+              echo "✅ AIDL works"
+            else
+              echo "❌ AIDL exists but cannot run"
+              exit 1
+            fi
           else
             echo "❌ AIDL not found"
             exit 1
