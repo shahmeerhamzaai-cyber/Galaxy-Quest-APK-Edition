@@ -179,13 +179,18 @@ jobs:
       # SECTION 3: JAVA INSTALLATION & CONFIGURATION (9 steps)
       # ================================================================
 
-      
-      - name: ⚡ Install JDK 11 Fast
+      - name: ⚡ Setup JDK 11
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '11'
-          cache: gradle
+          java-package: jdk
+          check-latest: false
+
+      - name: Verify JDK 11
+        run: |
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
 
           
       - name: Verify JDK 11
