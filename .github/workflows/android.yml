@@ -917,6 +917,19 @@ jobs:
           test -f buildozer.spec && echo "✓ buildozer.spec" || echo "✗ buildozer.spec"
           test -f main.py && echo "✓ main.py" || echo "✗ main.py"
 
+      - name: Accept Android SDK licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+          yes | $ANDROID_HOME/cmdline-tools/bin/sdkmanager --licenses || true
+
+      - name: Install Android Build Tools and AIDL
+        run: |
+          sdkmanager "platform-tools" "build-tools;37.0.0"
+
+      - name: Verify AIDL
+        run: |
+          find "$ANDROID_HOME" -name aidl -type f -print
+    
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
       # ================================================================
