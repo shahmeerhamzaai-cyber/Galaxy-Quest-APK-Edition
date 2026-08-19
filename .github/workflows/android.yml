@@ -1023,20 +1023,32 @@ jobs:
           echo "AIDL:"
           ls -l "$SDK/build-tools/35.0.0/aidl"
 
-      - name: Verify AIDL for Buildozer
+          
+      - name: Verify AIDL
         run: |
           SDK="$HOME/android-sdk"
 
           echo "=== BUILD TOOLS ==="
           ls -la "$SDK/build-tools"
 
-          echo "=== AIDL ==="
+          echo "=== AIDL FILES ==="
           find "$SDK/build-tools" -name aidl -type f -print
 
           echo "=== Testing AIDL ==="
-          "$SDK/build-tools/35.0.0/aidl" --version
+          "$SDK/build-tools/35.0.0/aidl" --help > /dev/null
 
-          echo "✅ AIDL is ready"
+          echo "✅ AIDL is installed and executable"
+
+      - name: Set JDK 11 as active Java
+        run: |
+          echo "JAVA_HOME=$JAVA_HOME_11_X64" >> "$GITHUB_ENV"
+          echo "$JAVA_HOME_11_X64/bin" >> "$GITHUB_PATH"
+
+          export JAVA_HOME="$JAVA_HOME_11_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
