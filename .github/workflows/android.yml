@@ -1158,6 +1158,17 @@ jobs:
           "$SDK/tools/bin/sdkmanager" --version
 
           echo "✅ Buildozer sdkmanager path ready"
+
+      - name: "Check Buildozer Python"
+        run: |
+          python --version
+          python -c "import sys; print(sys.executable)"
+          buildozer --version
+
+      - name: "Clean old Android build"
+        run: |
+          rm -rf .buildozer/android/platform/build-*
+          echo "✓ Old Android build removed"
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
