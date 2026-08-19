@@ -143,8 +143,7 @@ jobs:
 
       - name: "Step 7: Update package manager"
         run: |
-          echo "Updating package manager..."
-          sudo apt-get update -qq 2>&1 | tail -5
+          sudo apt-get update -qq
           echo "✓ Package manager updated"
 
       - name: "Step 8: Add required repositories"
