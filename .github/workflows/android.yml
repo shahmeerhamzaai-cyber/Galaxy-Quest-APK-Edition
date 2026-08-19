@@ -10,6 +10,10 @@ jobs:
     timeout-minutes: 120
 
     steps:
+      - name: Install essential build tools
+        run: |
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git zip unzip curl wget
 
       # ================================================================
       # SECTION 1: SYSTEM INITIALIZATION & DIAGNOSTICS (6 steps)
@@ -86,20 +90,11 @@ jobs:
         run: |
           sudo add-apt-repository ppa:openjdk-r/ppa -y 2>/dev/null || echo "Repository already added"
           sudo apt-get update -qq 2>/dev/null || true
-          echo "✓ Repositories configured"
-          
-            steps:
-      - name: Install essential build tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            build-essential \
-            git \
-            zip \
-            unzip \
-            curl \
-            wget
+          echo "✓ Repositories configured
 
+
+  
+        
       - name: "Step 10: Install system libraries part 1"
         run: |
           sudo apt-get install -y --no-install-recommends \
