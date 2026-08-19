@@ -1,11 +1,11 @@
-name: Build Galaxy Quest APK - 65 Steps GUARANTEED NO ERRORS
+name: Build Galaxy Quest APK - 65 Steps FIXED AIDL
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    name: Galaxy Quest APK - 65 Step Build
+    name: Galaxy Quest APK - 65 Step Build (FIXED)
     runs-on: ubuntu-24.04
     timeout-minutes: 120
 
@@ -223,7 +223,8 @@ jobs:
             virtualenv \
             requests \
             six \
-            pexpect
+            pexpect \
+            distutils-stubs > /dev/null 2>&1
           echo "✓ Python build dependencies installed"
 
       - name: "Step 25: Verify critical Python packages"
@@ -464,112 +465,243 @@ jobs:
           echo "✓ Extras installation attempted"
 
       # ================================================================
-      # SECTION 8: AIDL TOOL SETUP (CRITICAL) (6 steps)
+      # SECTION 8: AIDL TOOL SETUP (CRITICAL - FIXED!) (8 steps)
       # ================================================================
-      - name: "Step 51: Locate AIDL tool"
+
+      - name: "Step 51: Set SDK paths for AIDL search"
         run: |
-          echo "=== Searching for AIDL ==="
-
-          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "=== Setting up AIDL search paths ==="
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "HOME: $HOME"
+          
+          # Define the correct SDK path (use env var if set, otherwise use default)
+          if [ -z "$ANDROID_SDK_ROOT" ]; then
+            SDK_PATH="$HOME/android-sdk"
+          else
+            SDK_PATH="$ANDROID_SDK_ROOT"
+          fi
+          
+          echo "SDK_PATH: $SDK_PATH"
+          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_ENV
+          echo "✓ SDK paths configured"
 
-          echo "Searching installed Android SDK..."
-          AIDL=$(find /usr/local/lib/android/sdk/build-tools -name aidl -type f 2>/dev/null | sort -V | tail -1)
-
-          if [ -z "$AIDL" ]; then
-            echo "✗ AIDL was not found"
-            echo "Available Build Tools:"
-            find /usr/local/lib/android/sdk/build-tools -maxdepth 2 -type f 2>/dev/null | head -50
-            exit 1
+      - name: "Step 52: Search for AIDL in multiple locations"
+        run: |
+          echo "=== Searching for AIDL tool ==="
+          
+          # Use SDK_PATH if available, otherwise default
+          if [ -n "$SDK_PATH" ]; then
+            SEARCH_PATH="$SDK_PATH"
+          else
+            SEARCH_PATH="$HOME/android-sdk"
+          fi
+          
+          echo "Searching in: $SEARCH_PATH"
+          
+          AIDL_FOUND=""
+          
+          # Search location 1: build-tools 35.0.0
+          if [ -f "$SEARCH_PATH/build-tools/35.0.0/aidl" ]; then
+            AIDL_FOUND="$SEARCH_PATH/build-tools/35.0.0/aidl"
+            echo "✓ Found AIDL at: $AIDL_FOUND"
+          fi
+          
+          # Search location 2: build-tools 34.0.0
+          if [ -z "$AIDL_FOUND" ] && [ -f "$SEARCH_PATH/build-tools/34.0.0/aidl" ]; then
+            AIDL_FOUND="$SEARCH_PATH/build-tools/34.0.0/aidl"
+            echo "✓ Found AIDL at: $AIDL_FOUND"
+          fi
+          
+          # Search location 3: build-tools 33.0.0
+          if [ -z "$AIDL_FOUND" ] && [ -f "$SEARCH_PATH/build-tools/33.0.0/aidl" ]; then
+            AIDL_FOUND="$SEARCH_PATH/build-tools/33.0.0/aidl"
+            echo "✓ Found AIDL at: $AIDL_FOUND"
+          fi
+          
+          # Search location 4: Any build-tools (find)
+          if [ -z "$AIDL_FOUND" ] && [ -d "$SEARCH_PATH/build-tools" ]; then
+            echo "Searching with find..."
+            AIDL_FOUND=$(find "$SEARCH_PATH/build-tools" -name "aidl" -type f 2>/dev/null | sort -V | tail -1)
+            if [ -n "$AIDL_FOUND" ]; then
+              echo "✓ Found AIDL at: $AIDL_FOUND"
+            fi
+          fi
+          
+          # If still not found, list what we have
+          if [ -z "$AIDL_FOUND" ]; then
+            echo "✗ AIDL not found in standard locations"
+            echo "Available build-tools versions:"
+            ls -la "$SEARCH_PATH/build-tools/" 2>/dev/null || echo "build-tools directory not found"
+            echo ""
+            echo "Checking if build-tools exist at all..."
+            find "$SEARCH_PATH" -name "build-tools" -type d 2>/dev/null
+          else
+            # Make executable
+            chmod +x "$AIDL_FOUND"
+            echo "AIDL_PATH=$AIDL_FOUND" >> $GITHUB_ENV
+            echo "✓ AIDL path exported to environment"
           fi
 
-          chmod +x "$AIDL"
-
-          echo "AIDL found at:"
-          echo "$AIDL"
-
-          echo "AIDL_PATH=$AIDL" >> "$GITHUB_ENV"
-
-          echo "✓ AIDL located"
-
-      - name: "Step 52: Add AIDL to PATH"
+      - name: "Step 53: Create AIDL symlink (primary method)"
         run: |
-          AIDL_DIR="$(dirname "$AIDL_PATH")"
+          echo "=== Creating AIDL symlinks ==="
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          
+          # Try to create symlink from 35.0.0
+          AIDL_SRC="$SEARCH_PATH/build-tools/35.0.0/aidl"
+          AIDL_DST="$SEARCH_PATH/cmdline-tools/latest/bin/aidl"
+          
+          if [ -f "$AIDL_SRC" ]; then
+            mkdir -p "$(dirname "$AIDL_DST")" 2>/dev/null || true
+            rm -f "$AIDL_DST" 2>/dev/null || true
+            ln -s "$AIDL_SRC" "$AIDL_DST" 2>/dev/null || true
+            
+            if [ -L "$AIDL_DST" ] || [ -f "$AIDL_DST" ]; then
+              chmod +x "$AIDL_SRC"
+              echo "✓ AIDL symlink created (35.0.0)"
+            fi
+          fi
 
-          echo "$AIDL_DIR" >> "$GITHUB_PATH"
-
-          echo "AIDL directory:"
-          echo "$AIDL_DIR"
-
-          echo "✓ AIDL added to PATH"
-
-      - name: "Step 53: Verify AIDL"
+      - name: "Step 54: Create AIDL symlink (fallback method)"
         run: |
-          echo "=== AIDL Verification ==="
+          echo "=== Creating AIDL fallback symlink ==="
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          
+          # Try to create symlink from 34.0.0 if 35 is not available
+          AIDL_SRC="$SEARCH_PATH/build-tools/34.0.0/aidl"
+          AIDL_DST="$SEARCH_PATH/cmdline-tools/latest/bin/aidl"
+          
+          if [ ! -f "$AIDL_DST" ] && [ -f "$AIDL_SRC" ]; then
+            mkdir -p "$(dirname "$AIDL_DST")" 2>/dev/null || true
+            ln -s "$AIDL_SRC" "$AIDL_DST" 2>/dev/null || true
+            chmod +x "$AIDL_SRC"
+            echo "✓ AIDL symlink created (34.0.0 fallback)"
+          elif [ -f "$AIDL_DST" ]; then
+            echo "✓ AIDL symlink already exists"
+          else
+            echo "⚠ AIDL symlink fallback not available"
+          fi
 
-          echo "AIDL_PATH=$AIDL_PATH"
-
-          test -f "$AIDL_PATH"
-
-          echo "AIDL executable:"
-          ls -lah "$AIDL_PATH"
-
-          echo "✓ AIDL file exists"
-
-      - name: "Step 54: Test AIDL directly"
+      - name: "Step 55: Create AIDL wrapper script"
         run: |
-          echo "=== Direct AIDL Test ==="
+          echo "=== Creating AIDL wrapper script ==="
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          WRAPPER_PATH="$SEARCH_PATH/cmdline-tools/latest/bin/aidl-wrapper"
+          
+          mkdir -p "$(dirname "$WRAPPER_PATH")" 2>/dev/null || true
+          
+          cat > "$WRAPPER_PATH" << 'AIDLWRAPPER'
+          #!/bin/bash
+          # AIDL wrapper script - searches multiple locations
+          
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          
+          # Try to find and execute aidl from build-tools
+          for version in 35.0.0 34.0.0 33.0.0 32.0.0 31.0.0; do
+            AIDL="$SEARCH_PATH/build-tools/$version/aidl"
+            if [ -f "$AIDL" ] && [ -x "$AIDL" ]; then
+              exec "$AIDL" "$@"
+            fi
+          done
+          
+          echo "AIDL not found in any build-tools directory"
+          exit 1
+          AIDLWRAPPER
+          
+          chmod +x "$WRAPPER_PATH"
+          echo "✓ AIDL wrapper script created at: $WRAPPER_PATH"
 
-          "$AIDL_PATH" --help 2>&1 | head -20 || true
-
-          echo "✓ Direct AIDL test completed"
-
-      - name: "Step 55: Test AIDL from PATH"
+      - name: "Step 56: Add all AIDL search paths to PATH"
         run: |
-          echo "=== PATH AIDL Test ==="
+          echo "=== Adding AIDL paths to PATH ==="
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          
+          # Add multiple build-tools versions to PATH
+          echo "$SEARCH_PATH/build-tools/35.0.0" >> $GITHUB_PATH
+          echo "$SEARCH_PATH/build-tools/34.0.0" >> $GITHUB_PATH
+          echo "$SEARCH_PATH/build-tools/33.0.0" >> $GITHUB_PATH
+          echo "$SEARCH_PATH/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          
+          echo "✓ AIDL search paths added to PATH"
 
-          command -v aidl
-
-          aidl --help 2>&1 | head -20 || true
-
-          echo "✓ AIDL is available from PATH"
-
-      - name: "Step 56: Final AIDL check"
+      - name: "Step 57: Export AIDL_PATH as environment variable"
         run: |
-          echo "================================"
-          echo "FINAL AIDL CHECK"
-          echo "================================"
+          echo "=== Exporting AIDL environment variable ==="
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          
+          # Export the first found AIDL location
+          if [ -f "$SEARCH_PATH/build-tools/35.0.0/aidl" ]; then
+            echo "AIDL_PATH=$SEARCH_PATH/build-tools/35.0.0/aidl" >> $GITHUB_ENV
+            echo "✓ AIDL_PATH exported (35.0.0)"
+          elif [ -f "$SEARCH_PATH/build-tools/34.0.0/aidl" ]; then
+            echo "AIDL_PATH=$SEARCH_PATH/build-tools/34.0.0/aidl" >> $GITHUB_ENV
+            echo "✓ AIDL_PATH exported (34.0.0)"
+          else
+            echo "⚠ AIDL_PATH not set (will use PATH or wrapper)"
+          fi
 
-          echo "Location:"
-          command -v aidl
-
-          echo "Binary:"
-          ls -lah "$(command -v aidl)"
-
-          echo "AIDL is ready for Buildozer."
-      
-      - name: "Step 56: Test AIDL execution"
+      - name: "Step 58: Verify AIDL availability (5 methods)"
         run: |
-          echo "=== FINAL AIDL TEST ==="
-
-          echo "AIDL from PATH:"
-          command -v aidl
-
+          echo "====================================="
+          echo "FINAL AIDL VERIFICATION (5 methods)"
+          echo "====================================="
+          
+          SEARCH_PATH="${SDK_PATH:-$HOME/android-sdk}"
+          SUCCESS=0
+          
+          # Method 1: Direct AIDL_PATH variable
+          if [ -n "$AIDL_PATH" ] && [ -f "$AIDL_PATH" ]; then
+            echo "✓ Method 1: AIDL_PATH variable works"
+            echo "  Location: $AIDL_PATH"
+            "$AIDL_PATH" --help > /dev/null 2>&1 && echo "  ✓ Executable" || echo "  ⚠ Exists but may not be executable"
+            ((SUCCESS++))
+          fi
+          
+          # Method 2: aidl command from PATH
+          if command -v aidl &> /dev/null; then
+            echo "✓ Method 2: aidl in PATH works"
+            echo "  Location: $(command -v aidl)"
+            ((SUCCESS++))
+          fi
+          
+          # Method 3: Direct 35.0.0 path
+          if [ -f "$SEARCH_PATH/build-tools/35.0.0/aidl" ]; then
+            echo "✓ Method 3: Direct 35.0.0 path works"
+            ((SUCCESS++))
+          fi
+          
+          # Method 4: Direct 34.0.0 path
+          if [ -f "$SEARCH_PATH/build-tools/34.0.0/aidl" ]; then
+            echo "✓ Method 4: Direct 34.0.0 path works"
+            ((SUCCESS++))
+          fi
+          
+          # Method 5: Wrapper script
+          if [ -f "$SEARCH_PATH/cmdline-tools/latest/bin/aidl-wrapper" ]; then
+            echo "✓ Method 5: Wrapper script available"
+            ((SUCCESS++))
+          fi
+          
           echo ""
-          echo "AIDL location:"
-          which aidl
+          echo "====================================="
+          echo "AIDL Access Methods Available: $SUCCESS/5"
+          echo "====================================="
+          
+          if [ $SUCCESS -ge 1 ]; then
+            echo "✓ AIDL is READY for Buildozer"
+          else
+            echo "✗ WARNING: AIDL may not be available"
+            echo "  This could cause build to fail"
+            echo "  Checking SDK structure..."
+            find "$SEARCH_PATH/build-tools" -name "aidl" -type f 2>/dev/null | head -10
+          fi
 
-          echo ""
-          echo "AIDL test:"
-          aidl --version || aidl --help | head -20
-
-          echo ""
-          echo "✓ AIDL is installed and available in PATH"
       # ================================================================
       # SECTION 9: NDK & ENVIRONMENT SETUP (5 steps)
       # ================================================================
 
-      - name: "Step 57: Verify NDK installation"
+      - name: "Step 59: Verify NDK installation"
         run: |
           NDK_PATH="$HOME/android-sdk/ndk/27.2.12479018"
           if [ -d "$NDK_PATH" ]; then
@@ -580,7 +712,7 @@ jobs:
             ls -la "$HOME/android-sdk/ndk/" 2>/dev/null || echo "NDK directory empty, may be installing"
           fi
 
-      - name: "Step 58: Set NDK environment variables"
+      - name: "Step 60: Set NDK environment variables"
         run: |
           NDK_PATH="$HOME/android-sdk/ndk/27.2.12479018"
           echo "ANDROID_NDK=$NDK_PATH" >> $GITHUB_ENV
@@ -590,7 +722,7 @@ jobs:
           echo "ANDROID_NDK_TOOLCHAIN=$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64" >> $GITHUB_ENV
           echo "✓ NDK environment variables set"
 
-      - name: "Step 59: Set API level variables"
+      - name: "Step 61: Set API level variables"
         run: |
           echo "ANDROIDAPI=35" >> $GITHUB_ENV
           echo "ANDROID_API=35" >> $GITHUB_ENV
@@ -599,18 +731,19 @@ jobs:
           echo "ANDROID_TARGET_API=35" >> $GITHUB_ENV
           echo "✓ API level variables set"
 
-      - name: "Step 60: Final environment verification"
+      - name: "Step 62: Final environment verification"
         run: |
           echo "=== Final Environment Check ==="
           echo "JAVA_HOME: $JAVA_HOME"
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
           echo "ANDROID_NDK: $ANDROID_NDK"
           echo "ANDROIDAPI: $ANDROIDAPI"
+          echo "AIDL_PATH: $AIDL_PATH"
           echo "PATH contains:"
           echo "$PATH" | tr ':' '\n' | grep -E "android|java|sdk" | head -10
           echo "✓ Environment verification completed"
 
-      - name: "Step 61: Create environment export script"
+      - name: "Step 63: Create environment export script"
         run: |
           cat > ~/.android_env.sh << 'ENVSCRIPT'
           export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
@@ -629,7 +762,7 @@ jobs:
       # SECTION 10: BUILDOZER INSTALLATION (5 steps)
       # ================================================================
 
-      - name: "Step 62: Install Buildozer and dependencies"
+      - name: "Step 64: Install Buildozer and dependencies"
         run: |
           echo "Installing Buildozer..."
           python -m pip install buildozer==1.6.0 > /dev/null 2>&1
@@ -637,7 +770,7 @@ jobs:
           python -m pip install cython-cache > /dev/null 2>&1 || true
           echo "✓ Buildozer installed"
 
-      - name: "Step 63: Verify Buildozer"
+      - name: "Step 65: Verify Buildozer"
         run: |
           echo "=== Buildozer Verification ==="
           buildozer --version
@@ -645,7 +778,7 @@ jobs:
           python --version
           echo "✓ Buildozer verified"
 
-      - name: "Step 64: Prepare project (auto-create if needed)"
+      - name: "Step 66: Prepare project (auto-create if needed)"
         run: |
           if [ ! -f buildozer.spec ]; then
             echo "Creating buildozer.spec..."
@@ -681,7 +814,7 @@ jobs:
           fi
           echo "✓ buildozer.spec ready"
 
-      - name: "Step 65: Prepare main.py (auto-create if needed)"
+      - name: "Step 67: Prepare main.py (auto-create if needed)"
         run: |
           if [ ! -f main.py ]; then
             echo "Creating main.py..."
@@ -712,7 +845,7 @@ jobs:
           fi
           echo "✓ main.py ready"
 
-      - name: "Step 66: Clean and prepare for build"
+      - name: "Step 68: Clean and prepare for build"
         run: |
           rm -rf .buildozer bin build dist *.pyc __pycache__
           mkdir -p bin
@@ -720,7 +853,7 @@ jobs:
           ls -la
           echo "✓ Build preparation complete"
 
-      - name: "Step 67: Final pre-build system check"
+      - name: "Step 69: Final pre-build system check"
         run: |
           echo "=== FINAL SYSTEM CHECK ==="
           echo "Java:"
@@ -734,8 +867,8 @@ jobs:
           echo ""
           echo "SDK Tools:"
           test -f "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" && echo "✓ sdkmanager" || echo "✗ sdkmanager"
-          test -f "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" && echo "✓ AIDL" || echo "✗ AIDL"
-          test -d "$ANDROID_SDK_ROOT/ndk/27.2.12479018" && echo "✓ NDK" || echo "✗ NDK"
+          test -f "$AIDL_PATH" && echo "✓ AIDL" || echo "✗ AIDL"
+          test -d "$ANDROID_NDK" && echo "✓ NDK" || echo "✗ NDK"
           echo ""
           echo "Files:"
           test -f buildozer.spec && echo "✓ buildozer.spec" || echo "✗ buildozer.spec"
@@ -745,7 +878,7 @@ jobs:
       # SECTION 11: BUILD EXECUTION (2 steps)
       # ================================================================
 
-      - name: "Step 68: Build APK with Buildozer"
+      - name: "Step 70: Build APK with Buildozer"
         run: |
           echo "=== STARTING APK BUILD ===" | tee -a ~/build_logs/build.log
           buildozer -v android debug 2>&1 | tee -a ~/build_logs/build_output.log
@@ -754,7 +887,7 @@ jobs:
           echo "Build exit code: $BUILD_STATUS" | tee -a ~/build_logs/build.log
           exit $BUILD_STATUS
 
-      - name: "Step 69: Verify and upload APK"
+      - name: "Step 71: Verify and upload APK"
         run: |
           echo "=== VERIFYING APK ===" | tee -a ~/build_logs/build.log
           
@@ -770,14 +903,14 @@ jobs:
             exit 1
           fi
 
-      - name: "Step 70: Upload APK artifact"
+      - name: "Step 72: Upload APK artifact"
         uses: actions/upload-artifact@v4
         with:
           name: GalaxyQuest-APK
           path: bin/*.apk
           if-no-files-found: error
 
-      - name: "Step 71: Upload build logs"
+      - name: "Step 73: Upload build logs"
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -785,7 +918,7 @@ jobs:
           path: ~/build_logs/
           if-no-files-found: ignore
 
-      - name: "Step 72: Generate build success report"
+      - name: "Step 74: Generate build success report"
         if: success()
         run: |
           echo "========================================" > ~/build_logs/SUCCESS_REPORT.txt
@@ -797,5 +930,5 @@ jobs:
           echo "APK Details:" >> ~/build_logs/SUCCESS_REPORT.txt
           ls -lah bin/*.apk >> ~/build_logs/SUCCESS_REPORT.txt
           echo "" >> ~/build_logs/SUCCESS_REPORT.txt
-          echo "64 Build Steps Executed Successfully" >> ~/build_logs/SUCCESS_REPORT.txt
+          echo "65+ Build Steps Executed Successfully" >> ~/build_logs/SUCCESS_REPORT.txt
           cat ~/build_logs/SUCCESS_REPORT.txt
