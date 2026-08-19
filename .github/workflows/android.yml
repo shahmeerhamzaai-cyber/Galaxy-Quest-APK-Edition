@@ -14,50 +14,33 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends \
             build-essential git zip unzip curl wget
-
-      - name: Install Android SDK and AIDL
+      - name: Find existing Android SDK and AIDL
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            wget unzip
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_HOME=$ANDROID_HOME"
 
-          mkdir -p "$HOME/android-sdk/cmdline-tools"
+          echo "Searching for AIDL..."
 
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
-            -O /tmp/cmdline-tools.zip
+          AIDL=$(find "$ANDROID_SDK_ROOT/build-tools" \
+            -type f -name aidl 2>/dev/null | sort -V | tail -1)
 
-          unzip -q /tmp/cmdline-tools.zip -d "$HOME/android-sdk/cmdline-tools"
+          if [ -n "$AIDL" ]; then
+            echo "✅ AIDL found: $AIDL"
+            chmod +x "$AIDL"
+            echo "$(dirname "$AIDL")" >> "$GITHUB_PATH"
+            echo "AIDL_PATH=$AIDL" >> "$GITHUB_ENV"
+          else
+            echo "❌ AIDL not found"
+            find "$ANDROID_SDK_ROOT" -name aidl -print 2>/dev/null
+            exit 1
+          fi
 
-          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" \
-             "$HOME/android-sdk/cmdline-tools/latest"
-
-          export ANDROID_SDK_ROOT="$HOME/android-sdk"
-          export ANDROID_HOME="$ANDROID_SDK_ROOT"
-
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
-          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
-
-          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
-
-          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
-
-          chmod +x "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
-
-          echo "=== AIDL CHECK ==="
+      - name: Test AIDL
+        run: |
+          echo "AIDL_PATH=$AIDL_PATH"
           command -v aidl
           aidl --help >/dev/null 2>&1
-
-          echo "✅ Android SDK installed"
-          echo "✅ Build Tools installed"
-          echo "✅ AIDL installed and working"
+          echo "✅ AIDL works"
 
       - name: Using Full AIDL Path
         run: |
