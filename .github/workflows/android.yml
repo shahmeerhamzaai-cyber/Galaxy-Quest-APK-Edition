@@ -1084,7 +1084,7 @@ jobs:
           echo "✅ Buildozer can see the Android SDK"
           echo "✅ Buildozer can see AIDL"
 
-      - name: Set Java 17 for Android SDK tools
+      - name: "Set Java 17 for Android SDK tools"
         uses: actions/setup-java@v5
         with:
           distribution: temurin
