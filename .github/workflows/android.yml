@@ -77,7 +77,42 @@ jobs:
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" --help >/dev/null 2>&1
 
           echo "✅ AIDL installed and working"
+      - name: Cache Buildozer Android files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+            ~/.cache/pip
+            ~/android-sdk
+          key: buildozer-android-${{ runner.os }}-v1
+          restore-keys: |
+            buildozer-android-${{ runner.os }}-
+                  - name: Cache Buildozer Android files
 
+      - name: Cache Buildozer Android files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+            ~/.cache/pip
+            ~/android-sdk
+          key: buildozer-android-${{ runner.os }}-v1
+          restore-keys: |
+            buildozer-android-${{ runner.os }}-
+
+      - name: Cache Buildozer Android files
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.buildozer
+            ~/.gradle
+            ~/.cache/pip
+            ~/android-sdk
+          key: buildozer-android-${{ runner.os }}-v1
+          restore-keys: |
+            buildozer-android-${{ runner.os }}-
       # ================================================================
       # SECTION 1: SYSTEM INITIALIZATION & DIAGNOSTICS (6 steps)
       # ================================================================
