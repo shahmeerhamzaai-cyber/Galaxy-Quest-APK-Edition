@@ -638,32 +638,32 @@ jobs:
             echo "✓ Method 1: AIDL_PATH variable works"
             echo "  Location: $AIDL_PATH"
             "$AIDL_PATH" --help > /dev/null 2>&1 && echo "  ✓ Executable" || echo "  ⚠ Exists but may not be executable"
-            ((SUCCESS++))
+            SUCCESS=$((SUCCESS + 1))
           fi
           
           # Method 2: aidl command from PATH
           if command -v aidl &> /dev/null; then
             echo "✓ Method 2: aidl in PATH works"
             echo "  Location: $(command -v aidl)"
-            ((SUCCESS++))
+            SUCCESS=$((SUCCESS + 1))
           fi
           
           # Method 3: Direct 35.0.0 path
           if [ -f "$SEARCH_PATH/build-tools/35.0.0/aidl" ]; then
             echo "✓ Method 3: Direct 35.0.0 path works"
-            ((SUCCESS++))
+            SUCCESS=$((SUCCESS + 1))
           fi
           
           # Method 4: Direct 34.0.0 path
           if [ -f "$SEARCH_PATH/build-tools/34.0.0/aidl" ]; then
             echo "✓ Method 4: Direct 34.0.0 path works"
-            ((SUCCESS++))
+            SUCCESS=$((SUCCESS + 1))
           fi
           
           # Method 5: Wrapper script
           if [ -f "$SEARCH_PATH/cmdline-tools/latest/bin/aidl-wrapper" ]; then
             echo "✓ Method 5: Wrapper script available"
-            ((SUCCESS++))
+            SUCCESS=$((SUCCESS + 1))
           fi
           
           echo ""
