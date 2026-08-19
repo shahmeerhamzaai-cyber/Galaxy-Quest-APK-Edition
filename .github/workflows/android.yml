@@ -74,8 +74,6 @@ jobs:
 
           echo "$ANDROID_SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
 
-          chmod +x "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
-
           "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" --help >/dev/null 2>&1
 
           echo "✅ AIDL installed and working"
@@ -137,8 +135,6 @@ jobs:
           }
           export -f log_step
           LOGFUNC
-          chmod +x ~/log_function.sh
-          source ~/log_function.sh
           echo "Logging system initialized"
 
       # ================================================================
@@ -403,9 +399,8 @@ jobs:
 
       - name: "Step 38: Set permissions on cmdline-tools"
         run: |
-          chmod -R +x "$HOME/android-sdk/cmdline-tools/latest/bin/"
           ls -la "$HOME/android-sdk/cmdline-tools/latest/bin/" | head -20
-          echo "✓ Permissions set"
+          echo "✓ Permissions verified"
 
       - name: "Step 39: Create sdkmanager wrapper"
         run: |
@@ -413,7 +408,6 @@ jobs:
           #!/bin/bash
           "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager" "$@"
           WRAPPER
-          chmod +x "$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager-wrapper"
           echo "✓ sdkmanager wrapper created"
 
       - name: "Step 40: Verify sdkmanager executable"
@@ -421,7 +415,7 @@ jobs:
           SDKMANAGER="$HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager"
           if [ -f "$SDKMANAGER" ]; then
             file "$SDKMANAGER"
-            test -x "$SDKMANAGER" && echo "✓ sdkmanager is executable" || (chmod +x "$SDKMANAGER" && echo "✓ Made executable")
+            test -x "$SDKMANAGER" && echo "✓ sdkmanager is executable" || echo "✗ Not executable"
           else
             echo "✗ sdkmanager not found at $SDKMANAGER"
           fi
@@ -582,8 +576,6 @@ jobs:
             echo "Checking if build-tools exist at all..."
             find "$SEARCH_PATH" -name "build-tools" -type d 2>/dev/null
           else
-            # Make executable
-            chmod +x "$AIDL_FOUND"
             echo "AIDL_PATH=$AIDL_FOUND" >> $GITHUB_ENV
             echo "✓ AIDL path exported to environment"
           fi
@@ -603,7 +595,6 @@ jobs:
             ln -s "$AIDL_SRC" "$AIDL_DST" 2>/dev/null || true
             
             if [ -L "$AIDL_DST" ] || [ -f "$AIDL_DST" ]; then
-              chmod +x "$AIDL_SRC"
               echo "✓ AIDL symlink created (35.0.0)"
             fi
           fi
@@ -620,7 +611,6 @@ jobs:
           if [ ! -f "$AIDL_DST" ] && [ -f "$AIDL_SRC" ]; then
             mkdir -p "$(dirname "$AIDL_DST")" 2>/dev/null || true
             ln -s "$AIDL_SRC" "$AIDL_DST" 2>/dev/null || true
-            chmod +x "$AIDL_SRC"
             echo "✓ AIDL symlink created (34.0.0 fallback)"
           elif [ -f "$AIDL_DST" ]; then
             echo "✓ AIDL symlink already exists"
@@ -654,7 +644,6 @@ jobs:
           exit 1
           AIDLWRAPPER
           
-          chmod +x "$WRAPPER_PATH"
           echo "✓ AIDL wrapper script created at: $WRAPPER_PATH"
 
       - name: "Step 56: Add all AIDL search paths to PATH"
@@ -810,7 +799,6 @@ jobs:
           export ANDROIDMINAPI=21
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/build-tools/35.0.0:$ANDROID_SDK_ROOT/build-tools/34.0.0:$PATH"
           ENVSCRIPT
-          chmod +x ~/.android_env.sh
           echo "✓ Environment export script created"
 
       # ================================================================
