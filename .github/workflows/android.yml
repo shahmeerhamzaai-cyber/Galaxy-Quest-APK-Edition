@@ -911,7 +911,7 @@ jobs:
 
       - name: "Step 68: Clean and prepare for build"
         run: |
-          rm -rf .buildozer bin build dist *.pyc __pycache__
+          rm -rf bin build dist *.pyc __pycache__
           mkdir -p bin
           echo "Project structure ready"
           ls -la
@@ -1117,6 +1117,23 @@ jobs:
           "$BUILDOZER_SDK/build-tools/35.0.0/aidl" --help > /dev/null
 
           echo "✅ Buildozer SDK connected"
+
+      - name: "Prepare sdkmanager for Buildozer"
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/tools/bin/sdkmanager"
+
+          echo "Checking sdkmanager path:"
+          ls -l "$SDK/tools/bin/sdkmanager"
+
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "✅ Buildozer sdkmanager path ready"
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
