@@ -8,7 +8,7 @@ version = 1.8
 source.dir = .
 source.include_exts = py,png,jpg,jpeg,kv,atlas,wav,mp3
 
-requirements = python3,kivy,charset-normalizer==2.1.1
+requirements = python3,kivy,
 
 orientation = landscape
 fullscreen = 0
