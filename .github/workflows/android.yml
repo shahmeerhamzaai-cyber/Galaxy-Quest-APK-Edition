@@ -15,19 +15,48 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             build-essential git zip unzip curl wget
 
-      - name: Install AIDL
+      - name: Install Android SDK and AIDL
         run: |
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            wget unzip
 
-          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-          "$SDKMANAGER" "build-tools;35.0.0"
+          mkdir -p "$HOME/android-sdk/cmdline-tools"
 
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip \
+            -O /tmp/cmdline-tools.zip
+
+          unzip -q /tmp/cmdline-tools.zip -d "$HOME/android-sdk/cmdline-tools"
+
+          mv "$HOME/android-sdk/cmdline-tools/cmdline-tools" \
+             "$HOME/android-sdk/cmdline-tools/latest"
+
+          export ANDROID_SDK_ROOT="$HOME/android-sdk"
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+
+          "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+          echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/build-tools/35.0.0" >> "$GITHUB_PATH"
 
           chmod +x "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl"
 
-          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aidl" --help >/dev/null 2>&1
+          echo "=== AIDL CHECK ==="
+          command -v aidl
+          aidl --help >/dev/null 2>&1
 
+          echo "✅ Android SDK installed"
+          echo "✅ Build Tools installed"
           echo "✅ AIDL installed and working"
 
       # ================================================================
