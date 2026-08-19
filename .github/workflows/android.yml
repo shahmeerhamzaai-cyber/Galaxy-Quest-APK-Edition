@@ -179,12 +179,19 @@ jobs:
       # SECTION 3: JAVA INSTALLATION & CONFIGURATION (9 steps)
       # ================================================================
 
-      - name: Install JDK 11
-        run: |
-          sudo apt-get install -y --no-install-recommends openjdk-11-jdk
-          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))" >> "$GITHUB_ENV"
-          java -version
+      
+      - name: ⚡ Install JDK 11 Fast
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '11'
+          cache: gradle
 
+          
+      - name: Verify JDK 11
+        run: |
+          java -version
+          echo "JAVA_HOME=$JAVA_HOME"
       - name: "Step 16: Verify all Java installations"
         run: |
           echo "=== Checking Java Installations ==="
