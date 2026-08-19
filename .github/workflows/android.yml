@@ -127,11 +127,6 @@ jobs:
           echo "OpenJDK 11 path: $java11_path"
           echo "✓ OpenJDK 11 installed"
 
-      - name: "Step 15: Install OpenJDK 8 (extra backup)"
-        run: |
-          sudo apt-get install -y openjdk-8-jdk openjdk-8-jdk-headless > /dev/null 2>&1 || echo "Java 8 not available"
-          echo "Java 8 installation attempted"
-
       - name: "Step 16: Verify all Java installations"
         run: |
           echo "=== Checking Java Installations ==="
