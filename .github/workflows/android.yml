@@ -936,16 +936,16 @@ jobs:
         run: |
           find "$ANDROID_HOME" -name aidl -type f -print
 
+          
       - name: Install Build Tools for Buildozer
         run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
+          SDK="$ANDROID_HOME"
 
           echo "SDK = $SDK"
 
-          yes | "$SDK/tools/bin/sdkmanager" --sdk_root="$SDK" --licenses || true
+          yes | sdkmanager --licenses || true
 
-          "$SDK/tools/bin/sdkmanager" \
-            --sdk_root="$SDK" \
+          sdkmanager \
             "platform-tools" \
             "build-tools;37.0.0"
 
@@ -958,6 +958,12 @@ jobs:
 
           echo "=== AIDL ==="
           find "$SDK/build-tools" -name aidl -type f -print
+
+      - name: 3rd Time Verify AIDL
+        run: |
+          echo "Checking AIDL..."
+          ls -l "$ANDROID_HOME/build-tools/37.0.0/aidl"
+          "$ANDROID_HOME/build-tools/37.0.0/aidl" --version
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
