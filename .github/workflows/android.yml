@@ -87,13 +87,18 @@ jobs:
           sudo add-apt-repository ppa:openjdk-r/ppa -y 2>/dev/null || echo "Repository already added"
           sudo apt-get update -qq 2>/dev/null || true
           echo "✓ Repositories configured"
-
-      - name: "Step 9: Install essential build tools"
+          
+            steps:
+      - name: Install essential build tools
         run: |
+          sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends \
-            build-essential autoconf automake autopoint libtool pkg-config \
-            make cmake ccache patch git wget curl zip unzip > /dev/null 2>&1
-          echo "✓ Essential build tools installed"
+            build-essential \
+            git \
+            zip \
+            unzip \
+            curl \
+            wget
 
       - name: "Step 10: Install system libraries part 1"
         run: |
@@ -120,12 +125,11 @@ jobs:
       # SECTION 3: JAVA INSTALLATION & CONFIGURATION (9 steps)
       # ================================================================
 
-      - name: "Step 13: Install OpenJDK 11"
+      - name: Install JDK 11
         run: |
-          sudo apt-get install -y openjdk-11-jdk openjdk-11-jdk-headless > /dev/null 2>&1
-          java11_path=$(find /usr/lib/jvm -name "java-11-openjdk*" -type d | head -1)
-          echo "OpenJDK 11 path: $java11_path"
-          echo "✓ OpenJDK 11 installed"
+          sudo apt-get install -y --no-install-recommends openjdk-11-jdk
+          echo "JAVA_HOME=$(dirname $(dirname $(readlink -f $(which javac))))" >> "$GITHUB_ENV"
+          java -version
 
       - name: "Step 16: Verify all Java installations"
         run: |
