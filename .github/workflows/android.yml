@@ -141,15 +141,6 @@ jobs:
       # SECTION 2: SYSTEM PACKAGE MANAGEMENT (6 steps)
       # ================================================================
 
-      - name: "Step 7: Update package manager"
-        run: |
-          sudo apt-get update -qq
-          echo "✓ Package manager updated"
-
-      - name: "Step 8: Add required repositories"
-        run: |
-          sudo add-apt-repository -y ppa:openjdk-r/ppa
-          echo "✓ Repository configured"
   
         
       - name: "Step 10: Install system libraries part 1"
