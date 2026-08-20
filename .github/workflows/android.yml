@@ -1063,6 +1063,23 @@ jobs:
 
           echo "✅ AIDL is installed and executable"
 
+      - name: "Accept Android SDK licenses"
+        run: |
+          yes | sdkmanager --licenses || true
+          echo "✓ Android SDK licenses accepted"
+
+      - name: "Accept Android licenses"
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif [ -f "$SDK/tools/bin/sdkmanager" ]; then
+            yes | "$SDK/tools/bin/sdkmanager" --licenses || true
+          fi
+
+          echo "✓ Android SDK licenses processed"
+
       - name: Set JDK 11 as active Java
         run: |
           echo "JAVA_HOME=$JAVA_HOME_11_X64" >> "$GITHUB_ENV"
@@ -1252,6 +1269,30 @@ jobs:
           rm -rf ~/.buildozer
           rm -rf "$HOME/.buildozer"
           echo "✓ Old Android/Buildozer files removed"
+
+
+
+      - name: "Clean old Android dependency build"
+        run: |
+          rm -rf .buildozer/android/platform/build-*
+          echo "✓ Old Android dependency build removed"
+
+
+
+      - name: "Diagnose charset-normalizer"
+        run: |
+          python --version
+          python -m pip --version
+          python -m pip show charset-normalizer || true
+          find .buildozer -iname "*charset*normalizer*" -o -iname "*charset*"
+
+
+      - name: "Configure pip for Android dependencies"
+        run: |
+          export PIP_NO_BINARY=charset-normalizer
+          echo "PIP_NO_BINARY=$PIP_NO_BINARY" >> "$GITHUB_ENV"
+          echo "✓ charset-normalizer will be built from source"
+
 
       - name: "Build Galaxy Quest APK"
         run: |
