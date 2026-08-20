@@ -1217,9 +1217,14 @@ jobs:
           "$SDK/build-tools/35.0.0/aidl" --help >/dev/null
           echo "✅ AIDL works"
 
-      - name: "Build APK"
+      - name: "Downgrade pip to 24 and upgrade Buildozer"
         run: |
-          buildozer -v android debug
+          python -m pip install --upgrade "pip==24.3.1"
+          python -m pip install --upgrade buildozer
+          echo "✓ pip version:"
+          python -m pip --version
+          echo "✓ Buildozer version:"
+          buildozer --version
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
