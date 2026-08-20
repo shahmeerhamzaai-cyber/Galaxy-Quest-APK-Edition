@@ -1279,12 +1279,6 @@ jobs:
 
 
 
-      - name: "Diagnose charset-normalizer"
-        run: |
-          python --version
-          python -m pip --version
-          python -m pip show charset-normalizer || true
-          find .buildozer -iname "*charset*normalizer*" -o -iname "*charset*"
 
 
       - name: "Configure pip for Android dependencies"
