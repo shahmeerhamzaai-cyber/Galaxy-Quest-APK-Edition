@@ -1169,6 +1169,57 @@ jobs:
         run: |
           rm -rf .buildozer/android/platform/build-*
           echo "✓ Old Android build removed"
+
+      - name: "Setup JDK 17"
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: "Setup Python 3.12"
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: "Install Python build dependencies"
+        run: |
+          python -m pip install setuptools wheel
+          python -m pip install "Cython==0.29.34"
+          python -m pip install virtualenv requests six pexpect
+
+      - name: "Install Buildozer"
+        run: |
+          python -m pip install "buildozer==1.6.0"
+
+      - name: "Clean Buildozer state"
+        run: |
+          rm -rf .buildozer
+          rm -rf bin
+          mkdir -p bin
+
+      - name: "Install Android SDK packages"
+        run: |
+          SDK="$HOME/android-sdk"
+          SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+
+          yes | "$SDKMANAGER" --sdk_root="$SDK" --licenses || true
+
+          "$SDKMANAGER" --sdk_root="$SDK" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018"
+
+      - name: "Verify AIDL"
+        run: |
+          SDK="$HOME/android-sdk"
+          test -x "$SDK/build-tools/35.0.0/aidl"
+          "$SDK/build-tools/35.0.0/aidl" --help >/dev/null
+          echo "✅ AIDL works"
+
+      - name: "Build APK"
+        run: |
+          buildozer -v android debug
     
       # ================================================================
       # SECTION 11: BUILD EXECUTION (2 steps)
