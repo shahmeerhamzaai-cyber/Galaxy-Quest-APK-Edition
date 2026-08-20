@@ -57,7 +57,40 @@ jobs:
           else
             echo "⚠️ sdkmanager not found, but AIDL is available"
           fi
+      - name: "Install Python Build Dependencies"
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            git \
+            zip \
+            unzip \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            zlib1g-dev \
+            libncurses5-dev \
+            libncursesw5-dev \
+            cmake \
+            libffi-dev \
+            libssl-dev
 
+      - name: "Install Android Build Tools"
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;37.0.0"
+          else
+            echo "sdkmanager not found"
+            exit 1
+          fi
+
+          echo "✓ Android Build Tools installed"
+
+          
       - name: Test AIDL
         run: |
           echo "AIDL_PATH=$AIDL_PATH"
@@ -1130,6 +1163,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+
+      - name: "Accept Android SDK Licenses"
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
+            yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif [ -f "$SDK/tools/bin/sdkmanager" ]; then
+            yes | "$SDK/tools/bin/sdkmanager" --licenses || true
+          fi
+
+          echo "✓ Android SDK licenses accepted"
 
       - name: "Prepare Buildozer Android SDK"
         run: |
