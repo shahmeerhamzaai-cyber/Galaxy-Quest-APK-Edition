@@ -18,7 +18,7 @@ android.api = 35
 android.minapi = 24
 android.ndk = 27.2.12479018
 android.ndk_api = 24
-android.arch = arm64-v8a
+android.archs = armeabi-v7a
 android.accept_sdk_license = True
 
 # Python-for-Android
