@@ -1096,6 +1096,22 @@ jobs:
           echo "AIDL:"
           ls -l "$SDK/build-tools/35.0.0/aidl"
 
+
+      - name: Prepare buildozer.spec
+        run: |
+          echo "Preparing buildozer.spec for ARM64..."
+
+          if [ ! -f buildozer.spec ]; then
+            echo "❌ buildozer.spec not found"
+            exit 1
+          fi
+
+          sed -i 's/^android.archs *=.*/android.archs = arm64-v8a/' buildozer.spec
+
+          echo "✓ buildozer.spec prepared"
+          echo "Architecture:"
+          grep "^android.archs" buildozer.spec
+
           
       - name: Verify AIDL
         run: |
