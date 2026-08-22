@@ -951,42 +951,6 @@ jobs:
           python --version
           echo "✓ Buildozer verified"
 
-      - name: "Step 66: Prepare project (auto-create if needed)"
-        run: |
-          if [ ! -f buildozer.spec ]; then
-            echo "Creating buildozer.spec..."
-            cat > buildozer.spec << 'SPEC'
-          [app]
-          title = Galaxy Quest
-          package.name = galaxyquest
-          package.domain = org.galaxyquest
-          source.dir = .
-          source.include_exts = py,png,jpg,kv,atlas,txt,md
-          version = 0.1
-          requirements = python3,kivy,requests,urllib3,idna,certifi,charset-normalizer
-          orientation = portrait
-          fullscreen = 0
-          
-          [buildozer]
-          log_level = 2
-          warn_on_root = 1
-          
-          [app:android]
-          permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_FINE_LOCATION,CAMERA
-          api = 35
-          minapi = 21
-          ndk = 27.2.12479018
-          sdk = 35
-          bootstrap = sdl2
-          arch = armeabi-v7a,arm64-v8a
-          private_storage = True
-          android.release_artifact = apk
-          android.gradle_dependencies =
-          
-          SPEC
-          fi
-          echo "✓ buildozer.spec ready"
-
       - name: "Step 67: Prepare main.py (auto-create if needed)"
         run: |
           if [ ! -f main.py ]; then
@@ -1387,16 +1351,29 @@ jobs:
 
   
 
-      - name: "Install Android Build Tools"
+      - name: Install Android Build Tools
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
+          echo "Android SDK: $SDK"
+
           if [ -f "$SDK/cmdline-tools/latest/bin/sdkmanager" ]; then
-            "$SDK/cmdline-tools/latest/bin/sdkmanager" "build-tools;37.0.0"
+            SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          elif [ -f "$SDK/cmdline-tools/bin/sdkmanager" ]; then
+            SDKMANAGER="$SDK/cmdline-tools/bin/sdkmanager"
+          elif command -v sdkmanager >/dev/null 2>&1; then
+            SDKMANAGER="$(command -v sdkmanager)"
           else
-            echo "sdkmanager not found"
+            echo "❌ sdkmanager not found"
+            find "$SDK" -name sdkmanager -type f 2>/dev/null || true
             exit 1
           fi
+
+          echo "Using sdkmanager: $SDKMANAGER"
+
+          yes | "$SDKMANAGER" --licenses || true
+
+          "$SDKMANAGER" "build-tools;35.0.0"
 
           echo "✓ Android Build Tools installed"
 
